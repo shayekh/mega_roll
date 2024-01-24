@@ -46,6 +46,7 @@ class _GamePageState extends State<GamePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Image.asset('images/d5.png'),
 
           ],
         ),
