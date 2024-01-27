@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -32,6 +34,20 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
+  final diceList = [
+    'images/d1.png',
+    'images/d2.png',
+    'images/d3.png',
+    'images/d4.png',
+    'images/d5.png',
+    'images/d6.png',
+  ];
+
+  String result = '';
+  int index1 = 0, index2 = 0, diceSum = 0, target = 0;
+  bool hasTarget = false;
+  final random = Random.secure();
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -49,14 +65,101 @@ class _GamePageState extends State<GamePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text('My Dicee Game',
-                style: TextStyle(
-                  fontSize: 40,
-                )),
-            Image.asset('images/d5.png'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  diceList[index1],
+                  width: 100,
+                  height: 100,
+                ),
+                const SizedBox(
+                  width: 10,
+                ),
+                Image.asset(
+                  diceList[index2],
+                  width: 100,
+                  height: 100,
+                ),
+              ],
+            ),
+            Text(
+              'Dice Sum:' '$diceSum',
+              style: const TextStyle(fontSize: 25),
+            ),
+            if (hasTarget)
+              Text(
+                'Your target: $target\n Keep rolling to match $target',
+                style: const TextStyle(fontSize: 27),
+              ),
+            Text(
+              result,
+              style: const TextStyle(fontSize: 50),
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  rollDice();
+                },
+                child: const Text("ROLL")),
+            ElevatedButton(
+                onPressed: () {
+                  reset();
+                },
+                child: const Text("RESET"))
           ],
         ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
+  void rollDice() {
+    setState(() {
+      index1 = random.nextInt(6);
+      index2 = random.nextInt(6);
+      diceSum = index1 + index2 + 2;
+      if (hasTarget) {
+        checkTarget();
+      } else {
+        checkFirstRoll();
+      }
+    });
+  }
+
+  void checkTarget() {
+    if (target == diceSum) {
+      result = "You Win!!!";
+    } else if (diceSum == 7) {
+      result = "You Lost!!!";
+    }
+  }
+
+  void checkFirstRoll() {
+    if (diceSum == 7 || diceSum == 11) {
+      result = "You Win!!!";
+    } else if (diceSum == 2 || diceSum == 3 || diceSum == 12) {
+      result = "You Lost!!!";
+    } else {
+      hasTarget = true;
+      target = diceSum;
+    }
+  }
+
+  void reset() {
+    setState(() {
+      index1 = 0;
+      index2 = 0;
+      diceSum = 0;
+      target = 0;
+      result = '';
+      hasTarget = false;
+    });
+  }
 }
+
+const gameRules = '''
+*At the first roll, if the dice sum is 7 or 11, you win!
+*At the first roll, if the dice sum is 2, 3 or 12, you lost!
+*At the first roll, if the dice sum is 4,6,6,8,9,10, then this sum will be the target!
+*If dice sum matches the target point, you win!
+*If the dice sum is 7, you lost!
+''';
