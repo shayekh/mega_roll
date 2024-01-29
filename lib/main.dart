@@ -26,6 +26,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
+enum GameStatus {
+  running,
+  over,
+  none,
+}
+
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
@@ -43,9 +49,12 @@ class _GamePageState extends State<GamePage> {
     'images/d6.png',
   ];
 
+  static const String win = 'You Win!!!';
+  static const String lost = 'You Lost!!!';
+  GameStatus gameStatus = GameStatus.none;
   String result = '';
   int index1 = 0, index2 = 0, diceSum = 0, target = 0;
-  bool hasTarget = false;
+  bool hasTarget = false, shouldShowBoard = false;
   final random = Random.secure();
 
   @override
@@ -62,52 +71,66 @@ class _GamePageState extends State<GamePage> {
         title: const Text("Mega Roll"),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  diceList[index1],
-                  width: 100,
-                  height: 100,
-                ),
-                const SizedBox(
-                  width: 10,
-                ),
-                Image.asset(
-                  diceList[index2],
-                  width: 100,
-                  height: 100,
-                ),
-              ],
-            ),
-            Text(
-              'Dice Sum:' '$diceSum',
-              style: const TextStyle(fontSize: 25),
-            ),
-            if (hasTarget)
-              Text(
-                'Your target: $target\n Keep rolling to match $target',
-                style: const TextStyle(fontSize: 27),
+        child: shouldShowBoard
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        diceList[index1],
+                        width: 100,
+                        height: 100,
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      Image.asset(
+                        diceList[index2],
+                        width: 100,
+                        height: 100,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Dice Sum:' '$diceSum',
+                    style: const TextStyle(fontSize: 25),
+                  ),
+                  if (hasTarget)
+                    Text(
+                      'Your target: $target\n Keep rolling to match $target',
+                      style: const TextStyle(fontSize: 27),
+                    ),
+                  if (gameStatus == GameStatus.over)
+                    Text(
+                      result,
+                      style: const TextStyle(fontSize: 50),
+                    ),
+                  if (gameStatus == GameStatus.running)
+                    DiceButton(
+                      label: 'ROLL',
+                      onPressed: () {
+                        rollDice();
+                      },
+                    ),
+                  // ElevatedButton(
+                  //     onPressed: () {
+                  //       reset();
+                  //     },
+                  //     child: const Text("RESET"))
+                  if (gameStatus == GameStatus.over)
+                    DiceButton(
+                      label: 'RESET',
+                      onPressed: () {
+                        reset();
+                      },
+                    ),
+                ],
+              )
+            : StartPage(
+                onStart: startGame,
               ),
-            Text(
-              result,
-              style: const TextStyle(fontSize: 50),
-            ),
-            ElevatedButton(
-                onPressed: () {
-                  rollDice();
-                },
-                child: const Text("ROLL")),
-            ElevatedButton(
-                onPressed: () {
-                  reset();
-                },
-                child: const Text("RESET"))
-          ],
-        ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
@@ -127,17 +150,21 @@ class _GamePageState extends State<GamePage> {
 
   void checkTarget() {
     if (target == diceSum) {
-      result = "You Win!!!";
+      result = win;
+      gameStatus = GameStatus.over;
     } else if (diceSum == 7) {
-      result = "You Lost!!!";
+      result = lost;
+      gameStatus = GameStatus.over;
     }
   }
 
   void checkFirstRoll() {
     if (diceSum == 7 || diceSum == 11) {
-      result = "You Win!!!";
+      result = win;
+      gameStatus = GameStatus.over;
     } else if (diceSum == 2 || diceSum == 3 || diceSum == 12) {
-      result = "You Lost!!!";
+      result = lost;
+      gameStatus = GameStatus.over;
     } else {
       hasTarget = true;
       target = diceSum;
@@ -152,7 +179,97 @@ class _GamePageState extends State<GamePage> {
       target = 0;
       result = '';
       hasTarget = false;
+      shouldShowBoard = false;
+      gameStatus = GameStatus.none;
     });
+  }
+
+  startGame() {
+    setState(() {
+      shouldShowBoard = true;
+      gameStatus = GameStatus.running;
+    });
+  }
+}
+
+class StartPage extends StatelessWidget {
+  final VoidCallback onStart;
+
+  const StartPage({super.key, required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Image.asset(
+          'images/dicelogo.png',
+          width: 150,
+          height: 150,
+        ),
+        RichText(
+            text: TextSpan(
+                text: 'MEGA',
+                style: GoogleFonts.russoOne().copyWith(
+                  color: Colors.red,
+                  fontSize: 40,
+                ),
+                children: [
+              TextSpan(
+                  text: 'ROLL',
+                  style: GoogleFonts.russoOne().copyWith(
+                    color: Colors.black,
+                  ))
+            ])),
+        const Spacer(),
+        DiceButton(label: 'START', onPressed: onStart),
+        DiceButton(
+            label: 'HOW TO PLAY',
+            onPressed: () {
+              showInstruction(context);
+            })
+      ],
+    );
+  }
+
+  void showInstruction(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Instructions'),
+              content: const Text(gameRules),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('CLOSE'),
+                )
+              ],
+            ));
+  }
+}
+
+class DiceButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const DiceButton({super.key, required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: SizedBox(
+        width: 200,
+        height: 60,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 20, color: Colors.white),
+          ),
+        ),
+      ),
+    );
   }
 }
 
